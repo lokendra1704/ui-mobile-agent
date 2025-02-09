@@ -89,32 +89,25 @@ def extract_action(agent_response: str):
     
     # Extract action type and parameters using regex
     click_match = re.search(r"action: click\(start_box='\((\d+),(\d+)\)'\)", agent_response)
-    drag_match = re.search(r"action: drag\(start_box='\((\d+),(\d+)\)', end_box='\((\d+),(\d+)\)'\)", agent_response)
-    scroll_match = re.search(r"action: scroll\(start_box='\((\d+),(\d+)\)', direction='(\w+)'\)", agent_response)
+    long_press_match = re.search(r"action: long_press\(start_box='\((\d+),(\d+)\)'\)", agent_response)
     type_match = re.search(r"action: type\(content=['\"](.+?)['\"]\)", agent_response)
-    wait_match = re.search(r'action: wait\(\)', agent_response)
+    scroll_match = re.search(r"action: scroll\(start_box='\((\d+),(\d+)\)', end_box='\((\d+),(\d+)\)'\)", agent_response)
+    press_home_match = re.search(r'action: press_home\(\)', agent_response)
+    press_back_match = re.search(r'action: press_back\(\)', agent_response)
     finished_match = re.search(r'action: finished\(\)', agent_response)
-    call_user_match = re.search(r'action: calluser\(\)', agent_response)
-    long_press_match = re.search(r"action: longpress\(start_box='\((\d+),(\d+)\)'\)", agent_response)
-    press_back_match = re.search(r'action: pressback\(\)', agent_response)
-    press_home_match = re.search(r'action: presshome\(\)', agent_response)
-    press_enter_match = re.search(r'action: pressenter\(\)', agent_response)
+    wait_match = re.search(r'action: wait\(\)', agent_response)
+    double_click_match = re.search(r"action: double_click\(start_box='\((\d+),(\d+)\)'\)", agent_response)
     
     if click_match:
         action_dict["type"] = "click"
         action_dict["x"] = int(click_match.group(1))
         action_dict["y"] = int(click_match.group(2))
-    elif drag_match:
-        action_dict["type"] = "drag"
-        action_dict["start_x"] = int(drag_match.group(1))
-        action_dict["start_y"] = int(drag_match.group(2))
-        action_dict["end_x"] = int(drag_match.group(3))
-        action_dict["end_y"] = int(drag_match.group(4))
     elif scroll_match:
         action_dict["type"] = "scroll"
-        action_dict["x"] = int(scroll_match.group(1))
-        action_dict["y"] = int(scroll_match.group(2))
-        action_dict["direction"] = scroll_match.group(3)
+        action_dict["start_x"] = int(scroll_match.group(1))
+        action_dict["start_y"] = int(scroll_match.group(2))
+        action_dict["end_x"] = int(scroll_match.group(3))
+        action_dict["end_y"] = int(scroll_match.group(4))
     elif type_match:
         action_dict["type"] = "type"
         action_dict["content"] = type_match.group(1)
@@ -122,8 +115,6 @@ def extract_action(agent_response: str):
         action_dict["type"] = "wait"
     elif finished_match:
         action_dict["type"] = "finished"
-    elif call_user_match:
-        action_dict["type"] = "call_user"
     elif long_press_match:
         action_dict["type"] = "long_press"
         action_dict["x"] = int(long_press_match.group(1))
@@ -132,8 +123,17 @@ def extract_action(agent_response: str):
         action_dict["type"] = "press_back"
     elif press_home_match:
         action_dict["type"] = "press_home"
-    elif press_enter_match:
-        action_dict["type"] = "press_enter"
+    elif double_click_match:
+        action_dict["type"] = "double_click"
+        action_dict["x"] = int(double_click_match.group(1))
+        action_dict["y"] = int(double_click_match.group(2))
     
     return action_dict
 
+if __name__ == "__main__":
+    print(extract_action("""
+1. To move the video to the desired timestamp of 01:10:00, I need to use the progress bar to calculate the appropriate position. Since the video is currently at 19:22, the next step is to drag the progress bar to the left to reach the target time of 01:10:00.
+2. The progress bar is located at the bottom of the video player interface, and the current seek position is indicated by the red marker.
+3. By dragging the progress bar to the left, I can adjust the seek position to the desired timestamp, ensuring the video plays from the correct point.
+Action: scroll(start_box='(226,222)', end_box='(650,226)')                      
+"""))
