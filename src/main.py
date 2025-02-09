@@ -17,10 +17,10 @@ import argparse
 load_dotenv()
 
 
-def run_task_with_user_plan(user_plan, max_itr=20):
+def run_task_with_user_plan(user_plan, max_itr=20, llm_type="dpo"):
     if not user_plan:
         raise Exception("User plan is not provided.")
-    agent = TARS(base_type="sft", system_name="default", user_instruction=user_plan)
+    agent = TARS(base_type=llm_type if llm_type else "dpo", system_name="default", user_instruction=user_plan)
     messages = []
     iter = 1
     actionOperator = None
@@ -89,6 +89,7 @@ def run_task_with_user_plan(user_plan, max_itr=20):
         response = None
         response = agent.inference(messages)
         print("Response: ", response)
+        print("------------------------------------")
         if response is not None:
             messages.append(
                 MessageDict(
@@ -117,9 +118,13 @@ def run_task_with_user_plan(user_plan, max_itr=20):
 def main():
     parser = argparse.ArgumentParser(description="Run the TARS agent to perform tasks based on user instructions.")
     parser.add_argument("user_query", type=str, help="Task Query")
+    parser.add_argument("--llm_type", type=str, default="dpo", help="dpo/sft: DPO-trained llm or SFT-trained llm")
+    parser.add_argument("--max_itr", type=int, default=10, help="Maximum number of iterations to run the task")
     args = parser.parse_args()
     user_query = args.user_query
-    run_task_with_user_plan(user_query)
+    llm_type = args.llm_type
+    max_itr = args.max_itr
+    run_task_with_user_plan(user_query, max_itr=max_itr, llm_type=llm_type)
 
 if __name__ == "__main__":
     main()

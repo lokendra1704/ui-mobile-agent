@@ -27,7 +27,9 @@ SYSTEM_PROMPTS = {
 
 class TARS:
     def __init__(self, user_instruction, system_name, base_type="dpo", api_key = os.getenv("HF_API_KEY"), model="tgi"):
-        self.client = OpenAI(base_url=HF_TARS_DPO_ENDPOINT if base_type == "dpo" else  HF_TARS_BASE_ENDPOINT, api_key=api_key)
+        url = HF_TARS_DPO_ENDPOINT if base_type == "dpo" else HF_TARS_BASE_ENDPOINT
+        print(f"Using {base_type}:{url} endpoint.")
+        self.client = OpenAI(base_url=url, api_key=api_key)
         self.model = model
         self.system_name = system_name
         self.user_instruction = user_instruction
@@ -67,7 +69,7 @@ class TARS:
                         f.write(json.dumps(usage) + "\n")
                 return response.choices[0].message.content
             except Exception as e:
-                pass
+                print("Error in Sending request to OpenAI API.",)
             print(f"Sleep {sleep_sec} before retry...")
             sleep(sleep_sec)
             max_retry -= 1
