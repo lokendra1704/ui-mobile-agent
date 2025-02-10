@@ -4,6 +4,7 @@ import subprocess
 from PIL import Image
 import os
 import re
+from openai import OpenAI
 
 def track_usage(res_json, api_key):
     """
@@ -53,9 +54,17 @@ def get_screen_coordinates(x,y,image_width, image_height):
     )
 
 def get_screen_x_coordinate(x, image_width):
+    print("[get_screen_x_coordinate] With arguments: ", x, image_width)
     return round(image_width*x/1000)
 
+def emulator_to_ai_x_coordinate(x, image_width):
+    return round(x*1000/image_width)
+
+def emulator_to_ai_y_coordinate(y, image_height):
+    return round(y*1000/image_height)
+
 def get_screen_y_coordinate(y, image_height):
+    print("[get_screen_x_coordinate] With arguments: ", y, image_height)
     return round(image_height*y/1000)
 
 def get_image_url(image_path):
@@ -63,6 +72,7 @@ def get_image_url(image_path):
     return f"data:image/jpeg;base64,{encoded_string}"
 
 def get_screenshot(adb_path, save_path="./screenshot/screenshot.jpg"):
+    print("Getting Screenshot...")
     max_retry = 3
     while max_retry > 0:
         try:
@@ -72,37 +82,45 @@ def get_screenshot(adb_path, save_path="./screenshot/screenshot.jpg"):
             command = adb_path + " shell screencap -p /sdcard/screenshot.png"
             subprocess.run(command, capture_output=True, text=True, shell=True)
             time.sleep(0.5)
-            command = adb_path + " pull /sdcard/screenshot.png ./screenshot/screenshot.png"
+            command = adb_path + f" pull /sdcard/screenshot.png {save_path}"
             subprocess.run(command, capture_output=True, text=True, shell=True)
-            image_path = "./screenshot/screenshot.png"
-            image = Image.open(image_path)
+            image = Image.open(save_path)
             image.convert("RGB").save(save_path, "JPEG")
-            os.remove(image_path)
-            return
+            return save_path
         except Exception as e:
+            print(e)
             time.sleep(2)
             max_retry -= 1
+
+openai_agent = OpenAI(api_key=os.getenv("OPENAI_API_KEY_DZ"))
+def validate_action_from_openai(system_prompt, prompt):
+    response = openai_agent.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt}
+        ]
+    )
+    response = response.choices[0].message.content
+    return response
+
 
 def extract_action(agent_response: str):
     action_dict = {}
     agent_response = agent_response.lower()  # Convert to lowercase to avoid case sensitivity issues
     
     # Extract action type and parameters using regex
-    click_match = re.search(r"action: click\(start_box='\((\d+),(\d+)\)'\)", agent_response)
-    long_press_match = re.search(r"action: long_press\(start_box='\((\d+),(\d+)\)'\)", agent_response)
-    type_match = re.search(r"action: type\(content=['\"](.+?)['\"]\)", agent_response)
-    scroll_match = re.search(r"action: scroll\(start_box='\((\d+),(\d+)\)', end_box='\((\d+),(\d+)\)'\)", agent_response)
-    press_home_match = re.search(r'action: press_home\(\)', agent_response)
-    press_back_match = re.search(r'action: press_back\(\)', agent_response)
-    finished_match = re.search(r'action: finished\(\)', agent_response)
-    wait_match = re.search(r'action: wait\(\)', agent_response)
-    double_click_match = re.search(r"action: double_click\(start_box='\((\d+),(\d+)\)'\)", agent_response)
+    click_match = re.search(r"click\(start_box(.*?)(\d+),(\d+)\)(.*?)\)", agent_response)
+    long_press_match = re.search(r"long_press\(start_box='\((\d+),(\d+)\)'\)", agent_response)
+    type_match = re.search(r"type\(content=['\"](.+?)['\"]\)", agent_response)
+    scroll_match = re.search(r"scroll\(start_box='\((\d+),(\d+)\)', end_box='\((\d+),(\d+)\)'\)", agent_response)
+    press_home_match = re.search(r'press_home\(\)', agent_response)
+    press_back_match = re.search(r'press_back\(\)', agent_response)
+    finished_match = re.search(r'finished\(.*?\)', agent_response)
+    wait_match = re.search(r'wait\(\)', agent_response)
+    double_click_match = re.search(r"double_click\(start_box='\((\d+),(\d+)\)'\)", agent_response)
     
-    if click_match:
-        action_dict["type"] = "click"
-        action_dict["x"] = int(click_match.group(1))
-        action_dict["y"] = int(click_match.group(2))
-    elif scroll_match:
+    if scroll_match:
         action_dict["type"] = "scroll"
         action_dict["start_x"] = int(scroll_match.group(1))
         action_dict["start_y"] = int(scroll_match.group(2))
@@ -127,8 +145,20 @@ def extract_action(agent_response: str):
         action_dict["type"] = "double_click"
         action_dict["x"] = int(double_click_match.group(1))
         action_dict["y"] = int(double_click_match.group(2))
+    elif press_back_match:
+        action_dict["type"] = "press_enter"
+    elif click_match:
+        action_dict["type"] = "click"
+        action_dict["x"] = int(click_match.group(2))
+        action_dict["y"] = int(click_match.group(3))
     
     return action_dict
+
+def make_valid_filename(input_string: str):
+    sanitized = input_string.strip()
+    sanitized = re.sub(r'[<>:"/\\|?*]', '', sanitized)
+    sanitized = re.sub(r'\s+', '_', sanitized)
+    return sanitized
 
 if __name__ == "__main__":
     print(extract_action("""

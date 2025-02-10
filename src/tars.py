@@ -4,7 +4,9 @@ import os
 from time import sleep
 from typing import List, TypedDict, Literal, Union
 from constants import TARS_SYSTEM_PROMPT, HF_TARS_BASE_ENDPOINT, HF_TARS_DPO_ENDPOINT
-from utils import track_usage, encode_image
+from utils import track_usage, encode_image, make_valid_filename, get_image_url
+import uuid
+import copy
 
 class TextMessageContent(TypedDict):
     type: Literal["text"]
@@ -35,6 +37,7 @@ class TARS:
         self.user_instruction = user_instruction
         self.system_prompt = SYSTEM_PROMPTS.get(system_name, None)
         self.messages = []
+        self.message_log_file_name = f"{make_valid_filename(user_instruction)[:30]}_{uuid.uuid4().hex[0:5]}.json"
 
     def __fix_message_serizalization__(self, messages: List[MessageDict]):
         for i in range(len(messages)):
@@ -113,6 +116,7 @@ class TARS:
         """
         if not messages:
             raise Exception("Messages are not provided.")
+        messages = copy.deepcopy(messages)
         system_prompt = None
         formatted_system_prompt = None
         user_instruction = self.user_instruction
@@ -131,6 +135,11 @@ class TARS:
             *messages[-3:],
             # *self.__prune_message__(messages)
         ]
+        for i in range(len(messages)):
+            if messages[i]["role"] == "user":
+                for j in range(len(messages[i]["content"])):
+                    if messages[i]["content"][j]["type"] == "image_url" and "base64" not in messages[i]["content"][j]["image_url"]["url"]:
+                        messages[i]["content"][j]["image_url"]["url"] = get_image_url(messages[i]["content"][j]["image_url"]["url"])
         if kwargs is None:
             kwargs = {}
         if kwargs.get("max_tokens", None) is None:
