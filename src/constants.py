@@ -85,17 +85,22 @@ Example: If you are trying to show video controls multiple time by click, and st
        d. Use the scroll action (drag) from the current seek position to the target (y usually remains constant).
 """
 
-OPENAI_FIXER_PROMPT = """
-You are a Mobile GUI Agent who is operating on mobile.
-You are given a response from a small agent named 'tars' who is perfect in predicting the coordinates but sometimes makes mistakes in the action type.
-Your job is to carefully examine the response and correct the action type if it is wrong.
-Most of the time it predicts the correct action but sometimes it makes mistakes. So correctly only when you are sure that the action is wrong.
-You need to correct such mistakes and provide the corrected response again. Use the same coordinates as provided in the original response.
-Just output the corrected complete response in the same format as the original response with corrected action.
-If there is any calculations being made in the response, verify the calculation and result if fix it. Final response should have correct calculations
-Cases when to correct:
-- To pause the video, the agent sometimes predicts the action as click instead of double_click.
+OPENAI_FIXER_SYSTEM_PROMPT = "You are a Mobile GUI Agent who is operating on mobile."
 
+OPENAI_FIXER_PROMPT = Template(
+"""You are given a screenshot of mobile UI, user_instruction, and response from a small agent named 'tars' who is perfect in predicting the coordinates but sometimes makes mistakes in the action type.
+Your job is to carefully examine the response and correct the action type if it is wrong.
+Most of the time it predicts the correct action but sometimes it makes mistakes. So correct only when you are sure that the action is wrong.
+You need to correct such mistakes and provide the corrected response again. Use the same coordinates as provided in the original response.
+If there are any calculations being made in the response, verify the calculation and fix it if necessary. The final response should have correct calculations.
+
+Analyze the image and connect the thought process with the response to correct the action if necessary.
+
+Case When to use handover_to_video_operator:
+- Image shows a video player and the action is related to video playback controls in video player.
+
+Case when not to use handover_to_video_operator:
+- Image shows a list of rows and the action is related to clicking on a video to play. or some positional or index related information is present in the response telling which video to play.
 
 Available Actions Are:
 - click(start_box='<|box_start|>(x1,y1)<|box_end|>')
@@ -107,8 +112,73 @@ Available Actions Are:
 - press_enter()
 - finished(content='')  # Submit the task regardless of whether it succeeds or fails.
 - double_click(start_box='<|box_start|>(x1,y1)<|box_end|>', time='')
+- handover_to_video_operator(start_box='<|box_start|>(x1,y1)<|box_end|>')
+
+Your response must be a valid JSON object with the following keys:
+- `element_description`: A concise description of the UI element on which the action is being performed.
+- `ui_state_after_action`: A brief description of the UI state after the action is performed.
+- `corrected_action`: The corrected value of action.
+- `summarized_thought`: A brief summary of your thought process in format of: Taking action because <reason>.
+- `summarized_action`: 5-6 words summary of the corrected action for purpose of loggin action in natural language.
+
+Ensure that the JSON output is correctly formatted and should be code formatted.
+
+User Instruction: $user_instruction
+TARS_RESPONSE: $tars_response
+OUTPUT:
+"""
+)
 
 
+MOONDREAM_PROMPT_TEMPLATE = Template(
+"""
+Your task is to detect if the described element is present or not. Reply with yes or no
+Description: $description
+Output:
+"""
+)
+
+VIDEO_CONTROLLER_SYSTEM_PROMPT = "You are a Mobile GUI Agent who is operating on mobile."
+
+VIDEO_CONTROLLER_PROMPT_TEMPLATE = Template(
+"""You are a Mobile GUI Agent who is operating on mobile. You are given a task to interact with a video player on a mobile device.
+
+The video player has following various controls:
+- pause_video()
+- play_video()
+- finished()
+
+Your job is to carefully examine the provided information and decide on the next action to complete the task. Check the current state of the video player and perform the necessary action. If no action needs to be taken and the task is complete, use the 'finished()' action.
+### Guidelines ###
+- If user_insteuction is to pause the video, and Current state of the video player says its already paused, then you should not perform the pause action again, and return the finished() action.
+- If user_instruction is to play the video, and Current state of the video player says its already playing, then you should not perform the play action again, and return the finished() action.
+- If user_instruction is to play the video, and Current state of the video player says its paused, then you should perform the play action.
+- If user_instruction is to pause the video, and Current state of the video player says its playing, then you should perform the pause action.
+
+USER INSTRUCTION: $user_instruction
+
+ACTIONS TAKEN (in logical order):
+$actions_taken
+
+Current State of the Video Player:
+$video_player_state
+
+Output should be a valid json object formatted as code with the following keys:
+- `action`: The action to be taken next. The action should be one among the available actions.
+"""
+)
+
+VIDEO_PLAYER_IMAGE_ANALYZER_PROMPT = """
+Given an image of a mobile UI containing a video player, extract relevant details and return the output in the exact JSON format provided below. Ensure that the values are filled according to the image.
+OUTPUT should only contain valid JSON with following keys:
+- total_video_duration: Total video length of the video in the format "HH:MM:SS".
+- is_pause_button_visible: Boolean value indicating whether the pause button (two vertical white bars placed parallel to each other centrally positioned on the video player overlaying the video) is visible.
+- is_play_button_visible: Boolean value indicating whether the play button (solid right-facing triangle, centrally positioned on video player overlaying the video ) is visible. set True only when Play Icon is visible
+- is_forward_button_visible: Boolean value indicating whether the playback control: forward button (used to jump 10 seconds forward, usually position to the right of Pause/Play icon mostly) is visible.
+- is_backward_button_visible: Boolean value indicating whether the playback control: backward button (used to jump 10 seconds backwards, usually position to the left of Pause/Play icon mostly) is visible.
+- is_video_progress_bar_visible: Boolean value indicating whether the video progress bar (The video progress bar is a horizontal timeline that visually represents the video’s playback status. It typically consists of: a filled section indicating the portion already watched, a circular slider (scrubber) that moves as the video plays and can be dragged to seek a specific point, an unfilled section representing the remaining duration, and a buffered portion, often in a lighter shade, showing preloaded content for smoother playback. It is usually positioned at the bottom of the video player and may include timestamps for current time (current_video_timestamp) and total duration(total_video_duration)) is visible.
+- current_video_timestamp: Current timestamp of the video in the format "HH:MM:SS".
+- video_progress_bar_current_coordinates: Tuple of x and y coordinates of the current position of the video progress bar handle (which is dragged/scrolled to jump to desired timestamp).
 """
 
 HF_TARS_BASE_ENDPOINT = os.getenv("HF_SFT_ENDPOINT","https://rkmm5cfjhg21bqv6.us-east-1.aws.endpoints.huggingface.cloud/v1/")

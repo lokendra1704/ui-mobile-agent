@@ -9,13 +9,14 @@ from tars import (
     ImageMessageContent,
     ImageURLDict,
 )
-from utils import get_screenshot, extract_action, validate_action_from_openai, make_valid_filename
+from utils import get_screenshot, extract_action, validate_action_from_openai, make_valid_filename, replace_action, quick_state_validation
 from actions import ActionSpace
 import argparse
 import json
-from constants import OPENAI_FIXER_PROMPT
+from constants import OPENAI_FIXER_PROMPT, OPENAI_FIXER_SYSTEM_PROMPT
 import datetime
 import uuid
+from video_controller import operate_video_player
 
 load_dotenv()
 
@@ -24,7 +25,7 @@ def append_to_message(messages_list:list, new_message, log_file_name):
     with open(f"log/{log_file_name}", "w") as f:
         json.dump(messages_list, f, indent=4)
 
-def run_task_with_user_plan(user_plan, max_itr=20, llm_type="dpo", parent_dir="."):
+def run_task_with_user_plan(user_plan, max_itr=20, llm_type="dpo", parent_dir=".", ui_settling_time=3):
     if not user_plan:
         raise Exception("User plan is not provided.")
     agent = TARS(base_type=llm_type if llm_type else "dpo", system_name="default", user_instruction=user_plan)
@@ -36,7 +37,8 @@ def run_task_with_user_plan(user_plan, max_itr=20, llm_type="dpo", parent_dir=".
     screenshot_dir = os.path.join(parent_dir, f"screenshots")
     os.makedirs(screenshot_dir, exist_ok=True)
     while True:
-        screenshot_paths = [os.path.join(screenshot_dir, f"screenshot_{iter}_1.jpg"), ]
+        screenshot_paths = [os.path.join(screenshot_dir, f"screenshot_{iter}.jpg"), ]
+        error_screenshot_path = os.path.join(screenshot_dir, f"error_screenshot_{iter}.jpg")
         for screenshot_path in screenshot_paths:
             get_screenshot(adb_path="adb", save_path=screenshot_path)
             time.sleep(1)
@@ -92,50 +94,73 @@ def run_task_with_user_plan(user_plan, max_itr=20, llm_type="dpo", parent_dir=".
                     agent.message_log_file_name,
                 )
             else:
-                append_to_message(
-                    messages,
-                    MessageDict(
-                        role="user",
-                        content=[
-                            TextMessageContent(
-                                type="text",
-                                text="Invalid Last action, Please try again",
-                            )
-                        ],
-                    ),
-                    agent.message_log_file_name,
-                )
-                invalid_last_action = False
+                # TODO: Fallback mechanism when the last action is invalid
+                # append_to_message(
+                #     messages,
+                #     MessageDict(
+                #         role="user",
+                #         content=[
+                #             TextMessageContent(
+                #                 type="text",
+                #                 text="Invalid Last action, Please try again",
+                #             )
+                #         ],
+                #     ),
+                #     agent.message_log_file_name,
+                # )
+                # invalid_last_action = False
+                pass
         response = None
         response = agent.inference(messages)
         print("TARS Response: ", response)
         print("------------------------------------")
         if response is not None:
-            fixed_answer = validate_action_from_openai(OPENAI_FIXER_PROMPT , f"TARS_RESPONSE: {response}\nFIXED_OUTPUT: Thought:")
-            openai_response = f"Thought: {fixed_answer}"
-            if openai_response!=response:
-                response = openai_response
+            action = extract_action(response)
+            if action and type(action) == dict and action.get("type") == "finished":
+                print("Task completed.")
+                break
+            openai_response = validate_action_from_openai(
+                OPENAI_FIXER_PROMPT.substitute(
+                    tars_response=response,
+                    user_instruction=user_plan,
+                ),
+                screenshot_path=screenshot_paths[0],
+            )
+            print("FIXER OPENAI RESPONSE", openai_response)
+            response = replace_action(response, openai_response)
             action = extract_action(response)
             if not action or (type(action) == dict and "type" not in action):
                 invalid_last_action = True
             elif type(action) == dict:
-                if action.get("type") == "finished":
-                    print("Task completed.")
-                    break
-                elif action.get("type") == "wait" or action.get("type") == "sleep":
-                    time.sleep(action.get("time", 1))
-                else:
-                    actionOperator.map_generate_action_to_event(action)
-            append_to_message(
-                messages,
-                MessageDict(
-                    role="assistant",
-                    content=[
-                        TextMessageContent(type="text", text=response),
-                    ],
-                ),
-                agent.message_log_file_name,
-            )
+                try:    
+                    if action.get("type") == "finished":
+                        print("Task completed.")
+                        break
+                    elif action.get("type") == "wait" or action.get("type") == "sleep":
+                        time.sleep(action.get("time", 1))
+                    elif action.get("type") == "handover_to_video_operator":
+                        print("Handing over to video operator.")
+                        operate_video_player(user_plan, coordinates=(action.get("x"), action.get("y")))
+                        time.sleep(ui_settling_time)
+                        print("Video operation completed.")
+                        break
+                    elif openai_response.get("element_description", None) and quick_state_validation(openai_response.get("element_description"), error_screenshot_path):
+                        # TODO should have broken this into two lines
+                        actionOperator.map_generate_action_to_event(action)
+                        time.sleep(ui_settling_time)
+                    append_to_message(
+                        messages,
+                        MessageDict(
+                            role="assistant",
+                            content=[
+                                TextMessageContent(type="text", text=response),
+                            ],
+                        ),
+                        agent.message_log_file_name,
+                    )
+                except Exception as e:
+                    print("Error in action execution: ", e)
+                    invalid_last_action = True
         else:
             invalid_last_action = True
         iter += 1
@@ -154,11 +179,13 @@ def main():
 
 if __name__ == "__main__":
     user_plan = [
-        # "Click on first video in the list",
+        "Click on Physics",
+        "Click on All Content",
+        "Play the first Video",
         "Pause the video",
-        "Seek forward the video progress bar to 01:10:00",
-        "Play the video",
     ]
+        # "Seek forward the video progress bar to 01:10:00",
+        # "Play the video",
     current_time = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
     TASK_DIR = f"./tasks/{current_time}"
     for i,plan in enumerate(user_plan):

@@ -7,6 +7,7 @@ from constants import TARS_SYSTEM_PROMPT, HF_TARS_BASE_ENDPOINT, HF_TARS_DPO_END
 from utils import track_usage, encode_image, make_valid_filename, get_image_url
 import uuid
 import copy
+import time
 
 class TextMessageContent(TypedDict):
     type: Literal["text"]
@@ -61,11 +62,13 @@ class TARS:
         sleep_sec = 20
         while True:
             try:
+                start_time = time.time()
                 response = self.client.chat.completions.create(
                     model=self.model,
                     messages=messages,
                     **kwargs,
                 )
+                print(f"[TARS INFERENCE]Time taken: {time.time()-start_time}")
                 if usage_tracking_jsonl:
                     usage = track_usage(response, api_key="hf-inference-endpoint")
                     with open(usage_tracking_jsonl, "a") as f:

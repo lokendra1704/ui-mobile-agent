@@ -4,23 +4,51 @@ import subprocess
 from PIL import Image
 import os
 import re
+import json
 from openai import OpenAI
+from constants import MOONDREAM_PROMPT_TEMPLATE, OPENAI_FIXER_PROMPT, OPENAI_FIXER_SYSTEM_PROMPT
+
+openai_agent = OpenAI(api_key=os.getenv("OPENAI_API_KEY_DZ"))
+moondream_agent = OpenAI(
+    api_key=os.getenv("MOONDREAM_API_KEY"), base_url=os.getenv("MOONDREAM_API_BASE_URL")
+)
+
+def call_openai_chat_completions(max_itr=3, **kwargs):
+    while max_itr > 0:
+        try:
+            start_time = time.time()
+            response = openai_agent.chat.completions.create(**{"model":"gpt-4o-mini", **kwargs})
+            print("[call_openai_chat_completions] Time taken to get response from OPENAI:", time.time() - start_time)
+            return response.choices[0].message.content
+        except Exception as e:
+            print("Error in Sending request to OpenAI API.", str(e))
+            max_itr -= 1
+            time.sleep(1)
+    raise Exception("Failed to get response from OpenAI API.")
+    
+
 
 def track_usage(res_json, api_key):
     """
     {'id': 'chatcmpl-AbJIS3o0HMEW9CWtRjU43bu2Ccrdu', 'object': 'chat.completion', 'created': 1733455676, 'model': 'gpt-4o-2024-11-20', 'choices': [...], 'usage': {'prompt_tokens': 2731, 'completion_tokens': 235, 'total_tokens': 2966, 'prompt_tokens_details': {'cached_tokens': 0, 'audio_tokens': 0}, 'completion_tokens_details': {'reasoning_tokens': 0, 'audio_tokens': 0, 'accepted_prediction_tokens': 0, 'rejected_prediction_tokens': 0}}, 'system_fingerprint': 'fp_28935134ad'}
     """
-    model = res_json['model']
-    usage = res_json['usage']
+    model = res_json["model"]
+    usage = res_json["usage"]
     if "prompt_tokens" in usage and "completion_tokens" in usage:
-        prompt_tokens, completion_tokens = usage['prompt_tokens'], usage['completion_tokens']
+        prompt_tokens, completion_tokens = (
+            usage["prompt_tokens"],
+            usage["completion_tokens"],
+        )
     elif "promptTokens" in usage and "completionTokens" in usage:
-        prompt_tokens, completion_tokens = usage['promptTokens'], usage['completionTokens']
+        prompt_tokens, completion_tokens = (
+            usage["promptTokens"],
+            usage["completionTokens"],
+        )
     elif "input_tokens" in usage and "output_tokens" in usage:
-        prompt_tokens, completion_tokens = usage['input_tokens'], usage['output_tokens']
+        prompt_tokens, completion_tokens = usage["input_tokens"], usage["output_tokens"]
     else:
         prompt_tokens, completion_tokens = None, None
-    
+
     prompt_token_price = None
     completion_token_price = None
     if prompt_tokens is not None and completion_tokens is not None:
@@ -35,41 +63,49 @@ def track_usage(res_json, api_key):
             completion_token_price = (15 / 1000000) * completion_tokens
     return {
         "api_key": api_key,
-        "id": res_json['id'] if "id" in res_json else None,
+        "id": res_json["id"] if "id" in res_json else None,
         "model": model,
         "prompt_tokens": prompt_tokens,
         "completion_tokens": completion_tokens,
         "prompt_token_price": prompt_token_price,
-        "completion_token_price": completion_token_price
+        "completion_token_price": completion_token_price,
     }
+
 
 def encode_image(image_path):
     with open(image_path, "rb") as image_file:
-        return base64.b64encode(image_file.read()).decode('utf-8')
-    
-def get_screen_coordinates(x,y,image_width, image_height):
+        return base64.b64encode(image_file.read()).decode("utf-8")
+
+
+def get_screen_coordinates(x, y, image_width, image_height):
     return (
         get_screen_x_coordinate(x, image_width),
-        get_screen_y_coordinate(y, image_height)
+        get_screen_y_coordinate(y, image_height),
     )
+
 
 def get_screen_x_coordinate(x, image_width):
     print("[get_screen_x_coordinate] With arguments: ", x, image_width)
-    return round(image_width*x/1000)
+    return round(image_width * x / 1000)
+
 
 def emulator_to_ai_x_coordinate(x, image_width):
-    return round(x*1000/image_width)
+    return round(x * 1000 / image_width)
+
 
 def emulator_to_ai_y_coordinate(y, image_height):
-    return round(y*1000/image_height)
+    return round(y * 1000 / image_height)
+
 
 def get_screen_y_coordinate(y, image_height):
     print("[get_screen_x_coordinate] With arguments: ", y, image_height)
-    return round(image_height*y/1000)
+    return round(image_height * y / 1000)
+
 
 def get_image_url(image_path):
     encoded_string = encode_image(image_path)
     return f"data:image/jpeg;base64,{encoded_string}"
+
 
 def get_screenshot(adb_path, save_path="./screenshot/screenshot.jpg"):
     print("Getting Screenshot...")
@@ -92,34 +128,53 @@ def get_screenshot(adb_path, save_path="./screenshot/screenshot.jpg"):
             time.sleep(2)
             max_retry -= 1
 
-openai_agent = OpenAI(api_key=os.getenv("OPENAI_API_KEY_DZ"))
-def validate_action_from_openai(system_prompt, prompt):
+
+def validate_action_from_openai(prompt, system_prompt=OPENAI_FIXER_SYSTEM_PROMPT, screenshot_path=None):
+    start_time = time.time()
     response = openai_agent.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": prompt}
-        ]
+            {"role": "user", "content": [
+                {"type": "image_url", "image_url": {"url": get_image_url(screenshot_path)}},
+                {"type": "text", "text": prompt},
+            ]},
+        ],
     )
+    print("[validate_action_from_openai] Time taken to get response from OPENAI:", time.time() - start_time)
     response = response.choices[0].message.content
-    return response
+    return extract_json_object(response)
 
 
 def extract_action(agent_response: str):
     action_dict = {}
-    agent_response = agent_response.lower()  # Convert to lowercase to avoid case sensitivity issues
-    
+    agent_response = (
+        agent_response.lower()
+    )  # Convert to lowercase to avoid case sensitivity issues
+
     # Extract action type and parameters using regex
-    click_match = re.search(r"click\(start_box(.*?)(\d+),(\d+)\)(.*?)\)", agent_response)
-    long_press_match = re.search(r"long_press\(start_box='\((\d+),(\d+)\)'\)", agent_response)
+    click_match = re.search(
+        r"click\(start_box(.*?)(\d+),(\d+)\)(.*?)\)", agent_response
+    )
+    long_press_match = re.search(
+        r"long_press\(start_box='\((\d+),(\d+)\)'\)", agent_response
+    )
     type_match = re.search(r"type\(content=['\"](.+?)['\"]\)", agent_response)
-    scroll_match = re.search(r"scroll\(start_box='\((\d+),(\d+)\)', end_box='\((\d+),(\d+)\)'\)", agent_response)
-    press_home_match = re.search(r'press_home\(\)', agent_response)
-    press_back_match = re.search(r'press_back\(\)', agent_response)
-    finished_match = re.search(r'finished\(.*?\)', agent_response)
-    wait_match = re.search(r'wait\(\)', agent_response)
-    double_click_match = re.search(r"double_click\(start_box='\((\d+),(\d+)\)'\)", agent_response)
-    
+    scroll_match = re.search(
+        r"scroll\(start_box='\((\d+),(\d+)\)', end_box='\((\d+),(\d+)\)'\)",
+        agent_response,
+    )
+    handover_to_video_operator_match = re.search(
+        r"handover_to_video_operator\(start_box='\((\d+),(\d+)\)'\)", agent_response
+    )
+    press_home_match = re.search(r"press_home\(\)", agent_response)
+    press_back_match = re.search(r"press_back\(\)", agent_response)
+    finished_match = re.search(r"finished\(.*?\)", agent_response)
+    wait_match = re.search(r"wait\(\)", agent_response)
+    double_click_match = re.search(
+        r"double_click\(start_box='\((\d+),(\d+)\)'\)", agent_response
+    )
+
     if scroll_match:
         action_dict["type"] = "scroll"
         action_dict["start_x"] = int(scroll_match.group(1))
@@ -151,19 +206,199 @@ def extract_action(agent_response: str):
         action_dict["type"] = "click"
         action_dict["x"] = int(click_match.group(2))
         action_dict["y"] = int(click_match.group(3))
-    
+    elif handover_to_video_operator_match:
+        action_dict["type"] = "handover_to_video_operator"
+        action_dict["x"] = int(handover_to_video_operator_match.group(1))
+        action_dict["y"] = int(handover_to_video_operator_match.group(2))
     return action_dict
+
 
 def make_valid_filename(input_string: str):
     sanitized = input_string.strip()
-    sanitized = re.sub(r'[<>:"/\\|?*]', '', sanitized)
-    sanitized = re.sub(r'\s+', '_', sanitized)
+    sanitized = re.sub(r'[<>:"/\\|?*]', "", sanitized)
+    sanitized = re.sub(r"\s+", "_", sanitized)
     return sanitized
 
+
+def query_moondream(messages, max_retry=3, retry_interval=0.5):
+    if not messages:
+        return None
+    while max_retry > 0:
+        try:
+            start_time = time.time()
+            response = moondream_agent.chat.completions.create(
+                model=os.getenv("MOONDREAM_MODEL_NAME"), messages=messages
+            )
+            print("[query_moondream] Time taken to get response:", time.time() - start_time)
+            return response.choices[0].message.content
+        except Exception as e:
+            print(
+                f"[query_moondream][{max_retry}] Failed to Query Moondream API:", str(e)
+            )
+            max_retry -= 1
+            time.sleep(retry_interval)
+
+
+def quick_state_validation(element_description, image_path, prompt_type="quick_check"):
+    get_screenshot(os.getenv("ADB_PATH", "adb"), save_path=image_path)
+    if not element_description or not image_path:
+        raise Exception("Element description and image path are required.")
+    if prompt_type == "quick_check":
+        query = MOONDREAM_PROMPT_TEMPLATE.substitute(
+                            description=element_description,
+                        )
+    else:
+        query = element_description
+    response = query_moondream(
+        [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": query,
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": get_image_url(image_path),
+                        },
+                    }
+                ],
+            }
+        ]
+    )
+    print(f"[QUICK CHECK VALIDATION][]: QUERY: {query} RESPONSE: {response}")
+    if response and type(response) == str:
+        return "y" in response.lower()
+
+def extract_json_object(text, json_type="dict"):
+    """
+    Extracts a JSON object from a text string.
+
+    Parameters:
+    - text (str): The text containing the JSON data.
+    - json_type (str): The type of JSON structure to look for ("dict" or "list").
+
+    Returns:
+    - dict or list: The extracted JSON object, or None if parsing fails.
+    """
+    try:
+        if "//" in text:
+            # Remove comments starting with //
+            text = re.sub(r'//.*', '', text)
+        if "# " in text:
+            # Remove comments starting with #
+            text = re.sub(r'#.*', '', text)
+        # Try to parse the entire text as JSON
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass  # Not a valid JSON, proceed to extract from text
+
+    # Define patterns for extracting JSON objects or arrays
+    json_pattern = r"({.*?})" if json_type == "dict" else r"(\[.*?\])"
+
+    # Search for JSON enclosed in code blocks first
+    code_block_pattern = r"```json\s*(.*?)\s*```"
+    code_block_match = re.search(code_block_pattern, text, re.DOTALL)
+    if code_block_match:
+        json_str = code_block_match.group(1)
+        try:
+            return json.loads(json_str)
+        except json.JSONDecodeError:
+            pass  # Failed to parse JSON inside code block
+
+    # Fallback to searching the entire text
+    matches = re.findall(json_pattern, text, re.DOTALL)
+    for match in matches:
+        try:
+            return json.loads(match)
+        except json.JSONDecodeError:
+            continue  # Try the next match
+
+    # If all attempts fail, return None
+    return None
+
+def replace_action(original_string: str, corrected_json: dict) -> str:
+    # Extract the corrected action from the JSON
+    corrected_action = corrected_json.get("corrected_action", "")
+    
+    # Regular expression to find the existing Action statement
+    action_pattern = re.compile(r"(Action:\s*)(.*)")
+    
+    # Replace the existing action with the corrected one
+    def replace_match(match):
+        return f"{match.group(1)}{corrected_action}"
+    
+    return action_pattern.sub(replace_match, original_string)
+
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+from typing import Callable, List, Any
+
+def run_functions_in_parallel(funcs: List[Callable[[], Any]]) -> List[Any]:
+    """
+    Runs a list of synchronous functions in parallel using asyncio and ThreadPoolExecutor.
+    Returns the results in a list, maintaining the order.
+
+    :param funcs: List of callable functions with no arguments.
+    :return: List of results from the functions.
+    """
+    async def run_in_executor(func):
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, func)
+
+    async def main():
+        tasks = [run_in_executor(func) for func in funcs]
+        return await asyncio.gather(*tasks)
+
+    try:
+        loop = asyncio.get_running_loop()
+        future = asyncio.ensure_future(main())
+        return future.result() if future.done() else future
+    except RuntimeError:
+        return asyncio.run(main())
+
 if __name__ == "__main__":
-    print(extract_action("""
-1. To move the video to the desired timestamp of 01:10:00, I need to use the progress bar to calculate the appropriate position. Since the video is currently at 19:22, the next step is to drag the progress bar to the left to reach the target time of 01:10:00.
-2. The progress bar is located at the bottom of the video player interface, and the current seek position is indicated by the red marker.
-3. By dragging the progress bar to the left, I can adjust the seek position to the desired timestamp, ensuring the video plays from the correct point.
-Action: scroll(start_box='(226,222)', end_box='(650,226)')                      
-"""))
+    # response = quick_state_validation(
+    #     "What are the timestamp of the video?",
+    #     "/Users/lokendrabairwa/talkshopclub/ui-mobile-agent/tasks/2025_02_10_04_07_24/Seek_forward_the_video_progres_683bd/screenshots/screenshot_2_1.jpg",
+    #     prompt_type="qa"
+    # )
+#     tars_response = """
+# Thought: Since the video has not yet started playing, it is likely that the page has not fully loaded. To ensure the video is ready for interaction, I need to wait for the page to load completely before attempting to play the video again. This will help avoid any potential issues with the video not playing or the interface not responding.\nWait for the page to load completely before proceeding to play the video.\nAction: double_click(start_box='(511,156)')
+# """
+#     response = openai_agent.chat.completions.create(
+#         model="gpt-4o-mini",
+#         messages=[
+#             {"role": "system", "content": [{"type": "text", "text": OPENAI_FIXER_PROMPT}]},
+#             {"role": "user", "content": [{"type": "text", "text": tars_response}]},
+#         ],
+#     )
+#     response_json = response.choices[0].message.content
+#     try:
+#         response_dict = extract_json_object(response_json)
+#         print(response_dict)
+#         print("New Response")
+#         print(replace_action(tars_response, response_dict))
+#     except Exception as e:
+#         print("error", e)
+    # image_path = "/Users/lokendrabairwa/talkshopclub/ui-mobile-agent/video_analyzer/2025-02-11_10-05-03.jpg"
+    # print(
+    #     run_functions_in_parallel([
+    #         lambda: quick_state_validation("is pause button visible here? reply with y if visible else n", image_path, prompt_type="qa"),
+    #         lambda: quick_state_validation("is play button visible here? reply with y if visible else n", image_path, prompt_type="qa"),
+    #     ])
+    # )
+    screenshot_path = "/Users/lokendrabairwa/talkshopclub/ui-mobile-agent/video_analyzer/temp.jpg"
+    get_screenshot(os.getenv("ADB_PATH", "adb"), save_path=screenshot_path)
+    response = """Thought: To proceed with the task of clicking on the first video, I need to interact with the video titled \"Vector & Three-Dimensional Geometry 03: Important Questions.\" This involves tapping on the video thumbnail to open it and begin playback. The video is clearly identifiable by its title and thumbnail, making it straightforward to locate and select.\nAction: click(start_box='(237,196)')
+"""
+    openai_response = validate_action_from_openai(
+        OPENAI_FIXER_PROMPT.substitute(
+            tars_response=response,
+            user_instruction="Play the first video",
+        ),
+        screenshot_path=screenshot_path,
+    )
+    print(openai_response)
