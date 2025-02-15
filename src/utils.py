@@ -6,12 +6,14 @@ import os
 import re
 import json
 from openai import OpenAI
+import logging
 from constants import MOONDREAM_PROMPT_TEMPLATE, OPENAI_FIXER_PROMPT, OPENAI_FIXER_SYSTEM_PROMPT
 
 openai_agent = OpenAI(api_key=os.getenv("OPENAI_API_KEY_DZ"))
 moondream_agent = OpenAI(
     api_key=os.getenv("MOONDREAM_API_KEY"), base_url=os.getenv("MOONDREAM_API_BASE_URL")
 )
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 def call_openai_chat_completions(max_itr=3, **kwargs):
     while max_itr > 0:
@@ -120,6 +122,8 @@ def get_screenshot(adb_path, save_path="./screenshot/screenshot.jpg"):
             time.sleep(0.5)
             command = adb_path + f" pull /sdcard/screenshot.png {save_path}"
             subprocess.run(command, capture_output=True, text=True, shell=True)
+            while not os.path.exists(save_path):
+                time.sleep(0.2)
             image = Image.open(save_path)
             image.convert("RGB").save(save_path, "JPEG")
             return save_path
@@ -128,6 +132,68 @@ def get_screenshot(adb_path, save_path="./screenshot/screenshot.jpg"):
             time.sleep(2)
             max_retry -= 1
 
+
+def wait_for_file(filepath, timeout=2, poll_interval=0.1):
+    """Poll for a file to appear until a timeout is reached."""
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        if os.path.exists(filepath):
+            return True
+        time.sleep(poll_interval)
+    return False
+
+def open_image_with_retry(filepath, max_attempts=3, delay=0.2):
+    """Retry opening an image file if it is temporarily unavailable."""
+    for attempt in range(max_attempts):
+        try:
+            return Image.open(filepath)
+        except Exception as e:
+            logging.warning(f"Attempt {attempt + 1} to open image failed: {e}")
+            time.sleep(delay)
+    raise FileNotFoundError(f"Could not open {filepath} after {max_attempts} attempts.")
+
+def run_command(command, timeout=5):
+    """Execute a shell command and log its output. Timeout ensures commands don't hang."""
+    logging.info(f"Running command: {command}")
+    result = subprocess.run(command, capture_output=True, text=True, shell=True, timeout=timeout)
+    if result.returncode != 0:
+        logging.error(f"Command failed: {command}\nError: {result.stderr}")
+    return result
+
+def get_screenshot(adb_path, save_path="./screenshot/screenshot.jpg", retries=3):
+    """Capture a screenshot from an Android device with minimal waiting and robust checks."""
+    logging.info("Getting Screenshot...")
+    while retries > 0:
+        try:
+            # Ensure the target directory exists.
+            os.makedirs(os.path.dirname(save_path), exist_ok=True)
+
+            # 1. Remove any previous screenshot on the device.
+            # run_command(f"{adb_path} shell rm /sdcard/screenshot.png")
+
+            # 2. Capture a new screenshot on the device.
+            run_command(f"{adb_path} shell screencap -p /sdcard/screenshot.png")
+
+            # 3. Pull the screenshot from the device to the local machine.
+            pull_result = run_command(f"{adb_path} pull /sdcard/screenshot.png {save_path}")
+            if pull_result.returncode != 0 or not wait_for_file(save_path):
+                raise FileNotFoundError("ADB pull did not retrieve the file successfully.")
+
+            # 4. Open the image with a quick retry mechanism.
+            image = open_image_with_retry(save_path)
+
+            # 5. Convert the image to RGB and save it as a JPEG.
+            image.convert("RGB").save(save_path, "JPEG")
+            logging.info(f"Screenshot saved successfully: {save_path}")
+            return save_path
+
+        except Exception as e:
+            logging.error(f"Error obtaining screenshot: {e}")
+            retries -= 1
+            # A short pause before retrying
+            time.sleep(0.5)
+
+    raise RuntimeError("Failed to get screenshot after multiple retries.")
 
 def validate_action_from_openai(prompt, system_prompt=OPENAI_FIXER_SYSTEM_PROMPT, screenshot_path=None):
     start_time = time.time()
@@ -268,7 +334,7 @@ def quick_state_validation(element_description, image_path, prompt_type="quick_c
             }
         ]
     )
-    print(f"[QUICK CHECK VALIDATION][]: QUERY: {query} RESPONSE: {response}")
+    print(f"[QUICK CHECK VALIDATION][]: QUERY: {query} ----------------RESPONSE: {response}")
     if response and type(response) == str:
         return "y" in response.lower()
 
@@ -358,6 +424,45 @@ def run_functions_in_parallel(funcs: List[Callable[[], Any]]) -> List[Any]:
         return future.result() if future.done() else future
     except RuntimeError:
         return asyncio.run(main())
+    
+def timestamp_to_seconds(timestamp: str) -> int:
+    """
+    Convert a timestamp in "hh:mm:ss" or "mm:ss" format to total seconds.
+    
+    Args:
+        timestamp (str): A string representing the timestamp.
+    
+    Returns:
+        int: The total number of seconds.
+    
+    Raises:
+        ValueError: If the timestamp format is not valid.
+    """
+    try:
+        if type(timestamp) is str and ":" in timestamp:
+            parts = timestamp.split(":")
+            
+            if len(parts) == 2:
+                # Format: mm:ss
+                minutes, seconds = parts
+                total_seconds = int(minutes) * 60 + int(seconds)
+            elif len(parts) == 3:
+                # Format: hh:mm:ss
+                hours, minutes, seconds = parts
+                total_seconds = int(hours) * 3600 + int(minutes) * 60 + int(seconds)
+            else:
+                raise ValueError("Timestamp format must be either 'mm:ss' or 'hh:mm:ss'")
+            
+            return total_seconds
+        elif type(timestamp) is str:
+            return int(timestamp)
+        elif type(timestamp) is int:
+            return timestamp
+        else:
+            raise ValueError("Invalid timestamp format. Must be a string in 'mm:ss' or 'hh:mm:ss' format.")
+    except Exception as e:
+        raise ValueError(f"Error converting timestamp to seconds: {str(e)}")
+
 
 if __name__ == "__main__":
     # response = quick_state_validation(

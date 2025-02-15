@@ -17,6 +17,7 @@ from constants import OPENAI_FIXER_PROMPT, OPENAI_FIXER_SYSTEM_PROMPT
 import datetime
 import uuid
 from video_controller import operate_video_player
+import gradio as gr
 
 load_dotenv()
 
@@ -165,6 +166,22 @@ def run_task_with_user_plan(user_plan, max_itr=20, llm_type="dpo", parent_dir=".
             invalid_last_action = True
         iter += 1
 
+# Function that gets triggered when the button is clicked
+def process_input(text):
+    user_plan = text.split("\n")
+    current_time = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+    TASK_DIR = f"./tasks/{current_time}"
+    # user_plan = [
+    #     # "Click on Physics",
+    #     # "Click on All Content",
+    #     "Play the first Video",
+    #     "Seek forward the video progress bar to 01:24:56",
+    # ]
+    for i,plan in enumerate(user_plan):
+        CURRENT_TASK_DIR = os.path.join(TASK_DIR, f"{make_valid_filename(plan)[:30]}_{uuid.uuid4().hex[0:5]}")
+        print(f"*********************Running Task {i+1}: {plan}********************")
+        run_task_with_user_plan(plan, max_itr=20, llm_type="dpo", parent_dir=CURRENT_TASK_DIR)
+        print("$$$$$$$$$$$$$$$$$$$$ Finished STEP $$$$$$$$$$$$$$$$$$$$$$")
 
 def main():
     parser = argparse.ArgumentParser(description="Run the TARS agent to perform tasks based on user instructions.")
@@ -178,19 +195,13 @@ def main():
     run_task_with_user_plan(user_query, max_itr=max_itr, llm_type=llm_type)
 
 if __name__ == "__main__":
-    user_plan = [
-        "Click on Physics",
-        "Click on All Content",
-        "Play the first Video",
-        "Pause the video",
-    ]
-        # "Seek forward the video progress bar to 01:10:00",
-        # "Play the video",
-    current_time = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-    TASK_DIR = f"./tasks/{current_time}"
-    for i,plan in enumerate(user_plan):
-        CURRENT_TASK_DIR = os.path.join(TASK_DIR, f"{make_valid_filename(plan)[:30]}_{uuid.uuid4().hex[0:5]}")
-        print(f"*********************Running Task {i+1}: {plan}********************")
-        run_task_with_user_plan(plan, max_itr=20, llm_type="dpo", parent_dir=CURRENT_TASK_DIR)
-        print("$$$$$$$$$$$$$$$$$$$$ Finished STEP $$$$$$$$$$$$$$$$$$$$$$")
+    # Create Gradio interface
+    iface = gr.Interface(
+        fn=process_input,  # The function to run
+        inputs=[gr.Textbox(label="Enter some text")],  # The textbox for user input
+        outputs=[],  # Display the result
+        live=False  # Ensure the function runs only when the button is clicked
+    )
+    # Launch the interface
+    iface.launch()
 

@@ -1,0 +1,187 @@
+* Running on local URL:  http://127.0.0.1:7860
+2025-02-15 14:43:44,646 - INFO - HTTP Request: GET http://127.0.0.1:7860/gradio_api/startup-events "HTTP/1.1 200 OK"
+2025-02-15 14:43:44,655 - INFO - HTTP Request: HEAD http://127.0.0.1:7860/ "HTTP/1.1 200 OK"
+
+To create a public link, set `share=True` in `launch()`.
+2025-02-15 14:43:45,780 - INFO - HTTP Request: GET https://api.gradio.app/pkg-version "HTTP/1.1 200 OK"
+2025-02-15 14:43:45,781 - INFO - HTTP Request: GET https://api.gradio.app/gradio-messaging/en "HTTP/1.1 200 OK"
+*********************Running Task 1: Click on All Content********************
+Using dpo:https://s0b5af1yeykmxwwc.us-east-1.aws.endpoints.huggingface.cloud/v1/ endpoint.
+2025-02-15 14:44:09,851 - INFO - Getting Screenshot...
+2025-02-15 14:44:09,851 - INFO - Running command: adb shell screencap -p /sdcard/screenshot.png
+2025-02-15 14:44:10,301 - INFO - Running command: adb pull /sdcard/screenshot.png ./tasks/2025_02_15_14_44_09/Click_on_All_Content_ac2f8/screenshots/screenshot_1.jpg
+2025-02-15 14:44:10,371 - INFO - Screenshot saved successfully: ./tasks/2025_02_15_14_44_09/Click_on_All_Content_ac2f8/screenshots/screenshot_1.jpg
+2025-02-15 14:44:17,019 - INFO - HTTP Request: POST https://s0b5af1yeykmxwwc.us-east-1.aws.endpoints.huggingface.cloud/v1/chat/completions "HTTP/1.1 200 OK"
+[TARS INFERENCE]Time taken: 5.644546270370483
+TARS Response:  Thought: To proceed with the task of accessing all content, the logical next step is to interact with the "All Content" option at the top of the list. This option is clearly labeled and positioned as the primary entry point for viewing all available resources, making it the most relevant choice to achieve the goal.
+Tap on the "All Content" option to access all available resources and content.
+Action: click(start_box='(509,155)')
+------------------------------------
+2025-02-15 14:44:23,443 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+[validate_action_from_openai] Time taken to get response from OPENAI: 6.416648864746094
+FIXER OPENAI RESPONSE {'element_description': 'All Content option in the Physics section', 'ui_state_after_action': 'User is viewing all resources and content for Physics', 'corrected_action': "click(start_box='(509,155)')", 'summarized_thought': 'Taking action because I need to access all available resources.', 'summarized_action': 'Click on All Content option'}
+2025-02-15 14:44:23,445 - INFO - Getting Screenshot...
+2025-02-15 14:44:23,445 - INFO - Running command: adb shell screencap -p /sdcard/screenshot.png
+2025-02-15 14:44:23,690 - INFO - Running command: adb pull /sdcard/screenshot.png ./tasks/2025_02_15_14_44_09/Click_on_All_Content_ac2f8/screenshots/error_screenshot_1.jpg
+2025-02-15 14:44:23,756 - INFO - Screenshot saved successfully: ./tasks/2025_02_15_14_44_09/Click_on_All_Content_ac2f8/screenshots/error_screenshot_1.jpg
+2025-02-15 14:44:27,704 - INFO - HTTP Request: POST https://api.moondream.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[query_moondream] Time taken to get response: 3.948467969894409
+[QUICK CHECK VALIDATION][]: QUERY: 
+Your task is to detect if the described element is present or not. Reply with yes or no
+Description: All Content option in the Physics section
+Output:
+ ----------------RESPONSE:  yes
+Performing Action:  {'type': 'click', 'x': 509, 'y': 155}
+[get_screen_x_coordinate] With arguments:  509 1080
+[get_screen_x_coordinate] With arguments:  155 2400
+Issuing Command:  adb shell input tap 550 372
+2025-02-15 14:44:30,785 - INFO - Getting Screenshot...
+2025-02-15 14:44:30,786 - INFO - Running command: adb shell screencap -p /sdcard/screenshot.png
+2025-02-15 14:44:31,146 - INFO - Running command: adb pull /sdcard/screenshot.png ./tasks/2025_02_15_14_44_09/Click_on_All_Content_ac2f8/screenshots/screenshot_2.jpg
+2025-02-15 14:44:31,231 - INFO - Screenshot saved successfully: ./tasks/2025_02_15_14_44_09/Click_on_All_Content_ac2f8/screenshots/screenshot_2.jpg
+2025-02-15 14:44:40,281 - INFO - HTTP Request: POST https://s0b5af1yeykmxwwc.us-east-1.aws.endpoints.huggingface.cloud/v1/chat/completions "HTTP/1.1 200 OK"
+[TARS INFERENCE]Time taken: 8.042489051818848
+TARS Response:  1. The task was to click on "All Content," which has been successfully completed as evidenced by the current screen showing the "All Content" section.
+2. The screen now displays a list of video and lecture content, confirming that the user has accessed the desired section.
+3. Since the task was to click on "All Content," and the screen reflects this action, the task can now be marked as successfully completed.
+4. The next logical step is to submit the task as completed to confirm that the objective has been achieved.
+5. This involves using the "Submit Task" button or a similar option to finalize the task and indicate its successful completion.
+Action: finished(content='task complete')
+------------------------------------
+Task completed.
+$$$$$$$$$$$$$$$$$$$$ Finished STEP $$$$$$$$$$$$$$$$$$$$$$
+*********************Running Task 2: Play the first video********************
+Using dpo:https://s0b5af1yeykmxwwc.us-east-1.aws.endpoints.huggingface.cloud/v1/ endpoint.
+2025-02-15 14:44:40,293 - INFO - Getting Screenshot...
+2025-02-15 14:44:40,293 - INFO - Running command: adb shell screencap -p /sdcard/screenshot.png
+2025-02-15 14:44:40,551 - INFO - Running command: adb pull /sdcard/screenshot.png ./tasks/2025_02_15_14_44_09/Play_the_first_video_e0bc4/screenshots/screenshot_1.jpg
+2025-02-15 14:44:40,636 - INFO - Screenshot saved successfully: ./tasks/2025_02_15_14_44_09/Play_the_first_video_e0bc4/screenshots/screenshot_1.jpg
+2025-02-15 14:44:51,763 - INFO - HTTP Request: POST https://s0b5af1yeykmxwwc.us-east-1.aws.endpoints.huggingface.cloud/v1/chat/completions "HTTP/1.1 200 OK"
+[TARS INFERENCE]Time taken: 10.11936092376709
+TARS Response:  Thought: To play the first video titled "Electrostatics 01: Important Questions for JEE Advanced 2025," I need to interact with its thumbnail. The video is clearly identifiable at the top of the list, and tapping on it will initiate playback.
+Tap on the thumbnail of the video titled "Electrostatics 01: Important Questions for JEE Advanced 2025" to start playing it.
+Action: click(start_box='(212,196)')
+------------------------------------
+2025-02-15 14:44:59,730 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+[validate_action_from_openai] Time taken to get response from OPENAI: 7.966660022735596
+FIXER OPENAI RESPONSE {'element_description': "Thumbnail of the first video 'Electrostatics 01: Important Questions for JEE Advanced 2025'", 'ui_state_after_action': 'The first video starts playing.', 'corrected_action': "click(start_box='(212,196)')", 'summarized_thought': 'Taking action because I need to start video playback by clicking its thumbnail.', 'summarized_action': 'Click to play the first video'}
+2025-02-15 14:44:59,731 - INFO - Getting Screenshot...
+2025-02-15 14:44:59,731 - INFO - Running command: adb shell screencap -p /sdcard/screenshot.png
+2025-02-15 14:45:00,108 - INFO - Running command: adb pull /sdcard/screenshot.png ./tasks/2025_02_15_14_44_09/Play_the_first_video_e0bc4/screenshots/error_screenshot_1.jpg
+2025-02-15 14:45:00,192 - INFO - Screenshot saved successfully: ./tasks/2025_02_15_14_44_09/Play_the_first_video_e0bc4/screenshots/error_screenshot_1.jpg
+2025-02-15 14:45:03,449 - INFO - HTTP Request: POST https://api.moondream.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[query_moondream] Time taken to get response: 3.258265256881714
+[QUICK CHECK VALIDATION][]: QUERY: 
+Your task is to detect if the described element is present or not. Reply with yes or no
+Description: Thumbnail of the first video 'Electrostatics 01: Important Questions for JEE Advanced 2025'
+Output:
+ ----------------RESPONSE:  yes
+Performing Action:  {'type': 'click', 'x': 212, 'y': 196}
+[get_screen_x_coordinate] With arguments:  212 1080
+[get_screen_x_coordinate] With arguments:  196 2400
+Issuing Command:  adb shell input tap 229 470
+2025-02-15 14:45:06,633 - INFO - Getting Screenshot...
+2025-02-15 14:45:06,633 - INFO - Running command: adb shell screencap -p /sdcard/screenshot.png
+2025-02-15 14:45:07,274 - INFO - Running command: adb pull /sdcard/screenshot.png ./tasks/2025_02_15_14_44_09/Play_the_first_video_e0bc4/screenshots/screenshot_2.jpg
+2025-02-15 14:45:07,346 - INFO - Screenshot saved successfully: ./tasks/2025_02_15_14_44_09/Play_the_first_video_e0bc4/screenshots/screenshot_2.jpg
+2025-02-15 14:45:14,398 - INFO - HTTP Request: POST https://s0b5af1yeykmxwwc.us-east-1.aws.endpoints.huggingface.cloud/v1/chat/completions "HTTP/1.1 200 OK"
+[TARS INFERENCE]Time taken: 6.050529956817627
+TARS Response:  Thought: Since the video is already playing and the playback controls are visible, the task of playing the first video has been successfully completed. There is no further action required to fulfill the task, and I can now confirm the task's completion.
+Submit the task as successfully completed.
+Action: finished(content='task complete')
+------------------------------------
+Task completed.
+$$$$$$$$$$$$$$$$$$$$ Finished STEP $$$$$$$$$$$$$$$$$$$$$$
+*********************Running Task 3: Seek forward video progress bar to 01:29:38********************
+Using dpo:https://s0b5af1yeykmxwwc.us-east-1.aws.endpoints.huggingface.cloud/v1/ endpoint.
+2025-02-15 14:45:14,417 - INFO - Getting Screenshot...
+2025-02-15 14:45:14,417 - INFO - Running command: adb shell screencap -p /sdcard/screenshot.png
+2025-02-15 14:45:15,623 - INFO - Running command: adb pull /sdcard/screenshot.png ./tasks/2025_02_15_14_44_09/Seek_forward_video_progress_ba_55413/screenshots/screenshot_1.jpg
+2025-02-15 14:45:15,723 - INFO - Screenshot saved successfully: ./tasks/2025_02_15_14_44_09/Seek_forward_video_progress_ba_55413/screenshots/screenshot_1.jpg
+2025-02-15 14:45:23,606 - INFO - HTTP Request: POST https://s0b5af1yeykmxwwc.us-east-1.aws.endpoints.huggingface.cloud/v1/chat/completions "HTTP/1.1 200 OK"
+[TARS INFERENCE]Time taken: 6.873759031295776
+TARS Response:  Thought: To proceed with the task of seeking the video to the specified time of 01:29:38, I need to interact with the video player interface. The first step is to tap on the video area to bring up the video player controls, which will allow me to access the progress bar and time controls.
+I will tap on the video area to bring up the video player controls, enabling me to interact with the progress bar and time controls.
+Action: click(start_box='(555,190)')
+------------------------------------
+2025-02-15 14:45:31,522 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+[validate_action_from_openai] Time taken to get response from OPENAI: 7.916120290756226
+FIXER OPENAI RESPONSE {'element_description': 'Video player interface for seeking to a specific time', 'ui_state_after_action': 'Video player controls are visible for seeking', 'corrected_action': "handover_to_video_operator(start_box='(555,190)')", 'summarized_thought': 'Taking action because the interface requires video controls interaction.', 'summarized_action': 'Handover to video operator'}
+Handing over to video operator.
+2025-02-15 14:45:31,525 - INFO - Getting Screenshot...
+2025-02-15 14:45:31,525 - INFO - Running command: adb shell screencap -p /sdcard/screenshot.png
+2025-02-15 14:45:32,616 - INFO - Running command: adb pull /sdcard/screenshot.png video_analyzer/2025-02-15_14-45-31.jpg
+2025-02-15 14:45:32,714 - INFO - Screenshot saved successfully: video_analyzer/2025-02-15_14-45-31.jpg
+2025-02-15 14:45:36,242 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+[call_openai_chat_completions] Time taken to get response from OPENAI: 3.529654026031494
+[check_player_interactivity][Results] {'reason': 'The screenshot does not show the Play or Pause icons, which are essential for indicating the playback state of the video.', 'is_pause_icon_visible': False, 'is_play_icon_visible': False}
+[While-Loop] Ensuring Video is Paused...Current Stat: Visibility: Pause Button False Visibility: Play Button False
+[make_video_player_interactive] Making Video Player Interactive by clicking randomly...
+[get_screen_x_coordinate] With arguments:  555 1080
+[get_screen_x_coordinate] With arguments:  140 2400
+Issuing Command:  adb shell input tap 599 336
+[get_screen_x_coordinate] With arguments:  555 1080
+[get_screen_x_coordinate] With arguments:  190 2400
+[get_screen_x_coordinate] With arguments:  555 1080
+[get_screen_x_coordinate] With arguments:  190 2400
+Issuing Command:  adb shell input swipe 599 456 599 456 250
+[While-loop][After Attempt to make interactive] Attempted, now checking the latest state
+2025-02-15 14:45:38,814 - INFO - Getting Screenshot...
+2025-02-15 14:45:38,815 - INFO - Running command: adb shell screencap -p /sdcard/screenshot.png
+2025-02-15 14:45:39,252 - INFO - Running command: adb pull /sdcard/screenshot.png video_analyzer/2025-02-15_14-45-38.jpg
+2025-02-15 14:45:39,330 - INFO - Screenshot saved successfully: video_analyzer/2025-02-15_14-45-38.jpg
+2025-02-15 14:45:43,497 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+[call_openai_chat_completions] Time taken to get response from OPENAI: 4.168112754821777
+[check_player_interactivity][Results] {'reason': 'The screenshot displays a video player with the Pause icon visible, indicating that the video is currently paused. The Play icon is also present, allowing the user to resume playback.', 'is_pause_icon_visible': True, 'is_play_icon_visible': True}
+2025-02-15 14:45:43,499 - INFO - Getting Screenshot...
+2025-02-15 14:45:43,499 - INFO - Running command: adb shell screencap -p /sdcard/screenshot.png
+2025-02-15 14:45:43,849 - INFO - Running command: adb pull /sdcard/screenshot.png video_analyzer/2025-02-15_14-45-43.jpg
+2025-02-15 14:45:43,928 - INFO - Screenshot saved successfully: video_analyzer/2025-02-15_14-45-43.jpg
+2025-02-15 14:45:48,644 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+[call_openai_chat_completions] Time taken to get response from OPENAI: 4.716816186904907
+[{'role': 'system', 'content': [{'type': 'text', 'text': 'You are a Mobile GUI Agent who is operating on mobile.'}]}, {'role': 'user', 'content': [{'type': 'text', 'text': 'You are a Mobile GUI Agent who is operating on mobile. You are given a task to interact with a video player on a mobile device.\n\nThe video player has following various controls:\n- pause_video()\n- play_video()\n- finished()\n- seek_video(to_timestamp: str) # to_timestamp is in the format "HH:MM:SS". Example: seek_video(to_timestamp=\'01:10:00\')\n\nYour job is to carefully examine the provided information and decide on the next action to complete the task. Check the current state of the video player and perform the necessary action. If no action needs to be taken and the task is complete, use the \'finished()\' action.\n### Guidelines ###\n- If user_instruction is to pause the video, and Current state of the video player says its already paused, then you should not perform the pause action again, and return the finished() action.\n- If user_instruction is to play the video, and Current state of the video player says its already playing, then you should not perform the play action again, and return the finished() action.\n- If user_instruction is to play the video, and Current state of the video player says its paused, then you should perform the play action.\n- If user_instruction is to pause the video, and Current state of the video player says its playing, then you should perform the pause action.\n\nUSER INSTRUCTION: Seek forward video progress bar to 01:29:38\n\nACTIONS TAKEN (in logical order):\n["pause_video"]\n\nCurrent State of the Video Player:\nVideoController(total_video_duration=01:33:17, pause_or_play_button_coordinates=(555, 190), video_progress_bar_bbox_coordinates=[[26, 227], [972, 227]], forward_button_coordinates=None, backward_button_coordinates=None, is_pause_button_visible=False, is_play_button_visible=True, is_forward_button_visible=True, is_backward_button_visible=True, is_video_progress_bar_visible=True, current_video_timestamp=00:01:49, \n\nOutput should be a valid json object formatted as code with the following keys:\n- `action`: The action to be taken next. The action should be one among the available actions.\n\nHere are few examples to learn how to use the actions:\nUSER INSTRUCTION: Seek forward the video progress bar to 01:10:00\nOUTPUT: {"action": "seek_video(to_timestamp=\'01:10:00\')"}\n'}]}]
+2025-02-15 14:45:49,377 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+[call_openai_chat_completions] Time taken to get response from OPENAI: 0.7350540161132812
+2025-02-15 14:45:49,381 - INFO - Getting Screenshot...
+2025-02-15 14:45:49,382 - INFO - Running command: adb shell screencap -p /sdcard/screenshot.png
+2025-02-15 14:45:49,733 - INFO - Running command: adb pull /sdcard/screenshot.png video_analyzer/2025-02-15_14-45-49.jpg
+2025-02-15 14:45:49,800 - INFO - Screenshot saved successfully: video_analyzer/2025-02-15_14-45-49.jpg
+2025-02-15 14:45:54,201 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+[call_openai_chat_completions] Time taken to get response from OPENAI: 4.402214050292969
+[get_screen_x_coordinate] With arguments:  934.9848132928354 1080
+[get_screen_x_coordinate] With arguments:  227 2400
+Issuing Command:  adb shell input tap 1010 545
+2025-02-15 14:45:54,276 - INFO - Getting Screenshot...
+2025-02-15 14:45:54,276 - INFO - Running command: adb shell screencap -p /sdcard/screenshot.png
+2025-02-15 14:45:55,139 - INFO - Running command: adb pull /sdcard/screenshot.png video_analyzer/2025-02-15_14-45-54.jpg
+2025-02-15 14:45:55,226 - INFO - Screenshot saved successfully: video_analyzer/2025-02-15_14-45-54.jpg
+2025-02-15 14:45:59,954 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+[call_openai_chat_completions] Time taken to get response from OPENAI: 4.729140043258667
+[get_screen_x_coordinate] With arguments:  934.9848132928354 1080
+[get_screen_x_coordinate] With arguments:  227 2400
+Issuing Command:  adb shell input tap 1010 545
+2025-02-15 14:46:00,024 - INFO - Getting Screenshot...
+2025-02-15 14:46:00,024 - INFO - Running command: adb shell screencap -p /sdcard/screenshot.png
+2025-02-15 14:46:00,498 - INFO - Running command: adb pull /sdcard/screenshot.png video_analyzer/2025-02-15_14-46-00.jpg
+2025-02-15 14:46:00,574 - INFO - Screenshot saved successfully: video_analyzer/2025-02-15_14-46-00.jpg
+2025-02-15 14:46:04,598 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+[call_openai_chat_completions] Time taken to get response from OPENAI: 4.0265679359436035
+[get_screen_x_coordinate] With arguments:  500 1080
+[get_screen_x_coordinate] With arguments:  158 2400
+Issuing Command:  adb shell input tap 540 379
+[get_screen_x_coordinate] With arguments:  500 1080
+[get_screen_x_coordinate] With arguments:  158 2400
+Issuing Command:  adb shell input tap 540 379
+2025-02-15 14:46:07,773 - INFO - Getting Screenshot...
+2025-02-15 14:46:07,773 - INFO - Running command: adb shell screencap -p /sdcard/screenshot.png
+2025-02-15 14:46:08,111 - INFO - Running command: adb pull /sdcard/screenshot.png video_analyzer/2025-02-15_14-46-07.jpg
+2025-02-15 14:46:08,187 - INFO - Screenshot saved successfully: video_analyzer/2025-02-15_14-46-07.jpg
+2025-02-15 14:46:12,829 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+[call_openai_chat_completions] Time taken to get response from OPENAI: 4.643171787261963
+[{'role': 'system', 'content': [{'type': 'text', 'text': 'You are a Mobile GUI Agent who is operating on mobile.'}]}, {'role': 'user', 'content': [{'type': 'text', 'text': 'You are a Mobile GUI Agent who is operating on mobile. You are given a task to interact with a video player on a mobile device.\n\nThe video player has following various controls:\n- pause_video()\n- play_video()\n- finished()\n- seek_video(to_timestamp: str) # to_timestamp is in the format "HH:MM:SS". Example: seek_video(to_timestamp=\'01:10:00\')\n\nYour job is to carefully examine the provided information and decide on the next action to complete the task. Check the current state of the video player and perform the necessary action. If no action needs to be taken and the task is complete, use the \'finished()\' action.\n### Guidelines ###\n- If user_instruction is to pause the video, and Current state of the video player says its already paused, then you should not perform the pause action again, and return the finished() action.\n- If user_instruction is to play the video, and Current state of the video player says its already playing, then you should not perform the play action again, and return the finished() action.\n- If user_instruction is to play the video, and Current state of the video player says its paused, then you should perform the play action.\n- If user_instruction is to pause the video, and Current state of the video player says its playing, then you should perform the pause action.\n\nUSER INSTRUCTION: Seek forward video progress bar to 01:29:38\n\nACTIONS TAKEN (in logical order):\n["pause_video", "seek_video(to_timestamp=\'01:29:38\')"]\n\nCurrent State of the Video Player:\nVideoController(total_video_duration=01:33:17, pause_or_play_button_coordinates=(555, 190), video_progress_bar_bbox_coordinates=[[26, 227], [972, 227]], forward_button_coordinates=None, backward_button_coordinates=None, is_pause_button_visible=False, is_play_button_visible=True, is_forward_button_visible=True, is_backward_button_visible=True, is_video_progress_bar_visible=True, current_video_timestamp=01:29:38, \n\nOutput should be a valid json object formatted as code with the following keys:\n- `action`: The action to be taken next. The action should be one among the available actions.\n\nHere are few examples to learn how to use the actions:\nUSER INSTRUCTION: Seek forward the video progress bar to 01:10:00\nOUTPUT: {"action": "seek_video(to_timestamp=\'01:10:00\')"}\n'}]}]
+2025-02-15 14:46:13,449 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+[call_openai_chat_completions] Time taken to get response from OPENAI: 0.6213710308074951
+Completed the task.
+Video operation completed.
+$$$$$$$$$$$$$$$$$$$$ Finished STEP $$$$$$$$$$$$$$$$$$$$$$
+^CKeyboard interruption in main thread... closing server.

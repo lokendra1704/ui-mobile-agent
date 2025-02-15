@@ -147,10 +147,11 @@ The video player has following various controls:
 - pause_video()
 - play_video()
 - finished()
+- seek_video(to_timestamp: str) # to_timestamp is in the format "HH:MM:SS". Example: seek_video(to_timestamp='01:10:00')
 
 Your job is to carefully examine the provided information and decide on the next action to complete the task. Check the current state of the video player and perform the necessary action. If no action needs to be taken and the task is complete, use the 'finished()' action.
 ### Guidelines ###
-- If user_insteuction is to pause the video, and Current state of the video player says its already paused, then you should not perform the pause action again, and return the finished() action.
+- If user_instruction is to pause the video, and Current state of the video player says its already paused, then you should not perform the pause action again, and return the finished() action.
 - If user_instruction is to play the video, and Current state of the video player says its already playing, then you should not perform the play action again, and return the finished() action.
 - If user_instruction is to play the video, and Current state of the video player says its paused, then you should perform the play action.
 - If user_instruction is to pause the video, and Current state of the video player says its playing, then you should perform the pause action.
@@ -165,6 +166,10 @@ $video_player_state
 
 Output should be a valid json object formatted as code with the following keys:
 - `action`: The action to be taken next. The action should be one among the available actions.
+
+Here are few examples to learn how to use the actions:
+USER INSTRUCTION: Seek forward the video progress bar to 01:10:00
+OUTPUT: {"action": "seek_video(to_timestamp='01:10:00')"}
 """
 )
 
@@ -183,3 +188,25 @@ OUTPUT should only contain valid JSON with following keys:
 
 HF_TARS_BASE_ENDPOINT = os.getenv("HF_SFT_ENDPOINT","https://rkmm5cfjhg21bqv6.us-east-1.aws.endpoints.huggingface.cloud/v1/")
 HF_TARS_DPO_ENDPOINT = os.getenv("HF_DPO_ENDPOINT", "https://s0b5af1yeykmxwwc.us-east-1.aws.endpoints.huggingface.cloud/v1/")
+
+CHECK_PAUSED_PROMPT = """Check if a Pause button (||) is visible in the playback controls of the given image.
+	•	If Pause button is visible, reply “y”.
+	•	If Pause button is NOT visible, reply “n”.
+	•	Reply only with “y” or “n”—nothing else.."""
+
+CHECK_PLAYING_PROMPT = """Analyze the given image carefully. This is mobile UI screenshot so make your assumptions based on mobile screen. Identify the playback controls section (overlay on video player) and check if the “Play” button is visible. The “Play” button is typically represented by a right-facing triangle and is used to start or resume media playback.
+Response format:
+  •	Reply with “y” if the “Play” button is clearly visible in the image.
+  •	Reply with “n” if the “Play” button is not visible or cannot be confidently identified.
+Do not provide any additional text or explanations. Your response must be only “y” or “n”."""
+
+OPENAI_PLAY_PAUSE_PROMPT = """Analyze the given screenshot of a mobile video player UI. Check if both the Play icon and Pause icon are visible as part of the video playback controls overlayed above the video player. Consider scenarios where both icons may not be visible depending on the state of the video (playing or paused). Return the result in the following JSON forma:
+```json{"reason": "<reasoning here telling where and how it comes to the response>", "is_pause_icon_visible": set true if pause icon is visible, "is_play_icon_visible": set true if play icon is visible}```
+
+Some example reasons:
+<examples_start>
+- The screenshot does not show the Play or Pause icons, which are essential for indicating the playback state of the video.
+- The screenshot displays presence of Video player and playback controls on top of it containing Backward, Pause, Play, Forward buttons.
+- The screenshot displays presence of Video player and playback controls on top of it containing Backward, Pause, Pause, Forward buttons.
+<examples_end>
+Answer only with the JSON response"""
